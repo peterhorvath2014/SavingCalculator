@@ -1,0 +1,28 @@
+<c3chart bindto-id="chart" show-labels="true" enable-zoom="true" chart-data="datapoints" chart-columns="datacolumns"></c3chart>
+
+<div class="row">
+  <form novalidate class="simple-form">
+    <div class="panel panel-default">
+      <div class="panel-body text-right row">
+        <div class="col-lg-3 controls form-inline">
+          <input type="text" class="form-control" style="width:100%" placeholder="Title" ng-model="dream.title" required>
+        </div>
+        <div class="col-lg-3 controls form-inline">
+           <p class="input-group">
+              <input type="text" class="form-control" datepicker-popup="{{format}}" ng-model="dream.targetDate" required is-open="opened" min-date="minDate" min-mode="month" datepicker-mode="'month'" datepicker-options="dateOptions" date-disabled="disabled(date, mode)" ng-required="true" close-text="Close" />
+              <span class="input-group-btn">
+                <button type="button" class="btn btn-default" ng-click="open($event)"><i class="glyphicon glyphicon-calendar"></i></button>
+              </span>
+            </p>
+        </div>
+        <div class="col-lg-3 controls form-inline">
+          <input type="text" class="form-control" style="width:100%" placeholder="Amount" ng-model="dream.amount" required>
+        </div>
+        <div class="col-lg-3">
+          <button class="btn" ng-class="{'btn-disable disabled':!dream.title, 'btn-success':dream.title}" ng-disabled='!dream.title' ng-click="saveFinancialData(dream)"><span class="glyphicon glyphicon-floppy-save"></span> <span ng-if="id">Save</span><span ng-if="!id">Save as new</span></button>
+          <button class="btn btn-warning" ng-click="resetForm()"><span class="glyphicon glyphicon-refresh"></span> Reset fields</button>
+        </div>
+      </div>
+    </div>
+  </form>
+</div>
