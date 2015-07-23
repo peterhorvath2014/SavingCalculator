@@ -1,4 +1,8 @@
 $icon-font-path: "../bower_components/bootstrap-sass-official/assets/fonts/bootstrap/";
+$purple: #6600CC;
+$orange: #FF9966;
+$red: #CC0000;
+$pink: #FF0099;
 // bower:scss
 @import "bootstrap-sass-official/assets/stylesheets/_bootstrap.scss";
 // endbower
@@ -89,3 +93,44 @@ body {
     border-bottom: 0;
   }
 }
+
+.income {
+  background-color: white;
+  border-color: lightgreen;
+}
+.income-header {
+  background-color: lightgreen;
+  color: white;
+}
+.income-header button {
+  color: lightgreen;
+}
+
+.expense {
+  background-color: white;
+  border-color: $pink;
+}
+
+.expense-header {
+  background-color: $pink;
+  color: white;
+}
+.expense-header button {
+  color: $pink;
+}
+
+.one-time {
+  background-color: white;
+  border-color: $purple;
+}
+
+.monthly {
+  background-color: white;
+  border-color: $orange;
+}
+
+.annually {
+  background-color: white;
+  border-color: $red;
+}
+

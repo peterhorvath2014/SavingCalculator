@@ -7,116 +7,272 @@
  * # MainCtrl
  * Controller of the savingcalculatorApp
  */
+
 angular.module('savingcalculatorApp')
   .controller('DiagramCtrl', function($scope, $log, diagramFactory) {
+    function initDiagram() {
+      $scope.datapoints = [];
+      $scope.datacolumns = [{
+        "id": "income",
+        "type": "bar",
+        "name": "Income",
+        "color": "lightgreen"
+      }, {
+        "id": "expense",
+        "type": "bar",
+        "name": "Expense",
+        "color": "#FF0099"
+      }, {
+        "id": "balance",
+        "type": "line",
+        "name": "Balance",
+        "color": "#660033"
+      }];
+      $scope.datax = {
+        "id": "x"
+      };
+    };
 
-    $scope.dream = {};
+    function initDatePicker() {
+      $scope.today = function() {
+        $scope.financialData.targetDateFrom = new Date();
+        $scope.financialData.targetDateTo = new Date();
+      };
+      $scope.today();
+
+      $scope.clear = function() {
+        $scope.financialData.targetDateFrom = null;
+        $scope.financialData.targetDateTo = null;
+      };
+
+      // Disable weekend selection
+      $scope.disabled = function(date, mode) {
+        return (mode === 'day' && (date.getDay() === 0 || date.getDay() === 6));
+      };
+
+      $scope.toggleMin = function() {
+        $scope.minDate = $scope.minDate ? null : new Date();
+      };
+      $scope.toggleMin();
+
+      $scope.open = function($event) {
+        $event.preventDefault();
+        $event.stopPropagation();
+        $scope.opened = true;
+      };
+
+      $scope.dateOptions = {
+        formatYear: 'yy',
+        startingDay: 1
+      };
+
+      $scope.format = 'yyyy-MM';
+
+      var tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      var afterTomorrow = new Date();
+      afterTomorrow.setDate(tomorrow.getDate() + 2);
+      $scope.events = [{
+        date: tomorrow,
+        status: 'full'
+      }, {
+        date: afterTomorrow,
+        status: 'partially'
+      }];
+
+      $scope.getDayClass = function(date, mode) {
+        if (mode === 'day') {
+          var dayToCheck = new Date(date).setHours(0, 0, 0, 0);
+
+          for (var i = 0; i < $scope.events.length; i++) {
+            var currentDay = new Date($scope.events[i].date).setHours(0, 0, 0, 0);
+
+            if (dayToCheck === currentDay) {
+              return $scope.events[i].status;
+            }
+          }
+        }
+
+        return '';
+      };
+    };
+
+    function initFinancialDataForm() {
+      $scope.financialDataTypes = [{
+        "name": "Income",
+        "class": "income",
+        "cTrue": true
+      }, {
+        "name": "Expense",
+        "class": "expense",
+        "cTrue": true
+      }];
+      $scope.financialDataReoccurringTypes = [{
+        "name": "One time",
+        "class": "one-time",
+        "cTrue": true
+      }, {
+        "name": "Monthly",
+        "class": "monthly",
+        "cTrue": true
+      }, {
+        "name": "Annually",
+        "class": "annually",
+        "cTrue": true
+      }];
+      $scope.defaultFinancialData = {
+        "targetDateFrom": new Date(),
+        "targetDateTo": new Date(),
+        "type": $scope.financialDataTypes[1].name,
+        "reoccurringType": $scope.financialDataReoccurringTypes[0].name,
+      };
+      /*$scope.incomeDataType = {"financialData" : {"type":"Income"}};
+      $scope.expenseDataType = {"financialData" : {"type":"Expense"}};*/
+      resetForm();
+    }
+
+    function init() {
+      initFinancialDataForm();
+      initDatePicker();
+      initDiagram();
+    }
+    init();
 
     function refreshDataPoints() {
       var promise = diagramFactory.getFinancialData();
       promise.then(function(data) {
         $log.debug(data);
-        $scope.datapoints = data;
+        $scope.financialDataFromDb = data;
+        $scope.datapoints = convertFinancialDataToDatapoint(data);
+      }, function(error) {});
+    }
+    refreshDataPoints();
+
+    $scope.removeFinancialDataFromDb = function(id) {
+      var promise = diagramFactory.deleteFinancialData(id);
+      promise.then(function(data) {
+        refreshDataPoints();
       }, function(error) {
 
       });
-    }
-    refreshDataPoints();
-    
-     $scope.saveFinancialData = function(dream) {
-            var promise;
-            if ($scope._id) {
-                promise = diagramFactory.updateFinancialData($scope.dream, $scope._id);
-            }
-            else {
-                promise = diagramFactory.insertNewFinancialData($scope.dream);
-            }
-            promise.then(function(data) {
-                resetForm();
-                refreshDataPoints();
-            }, function(error) {
+    };
 
-            });
-        };
+    $scope.saveFinancialData = function() {
+      var promise;
+      if ($scope._id) {
+        promise = diagramFactory.updateFinancialData($scope.financialData, $scope._id);
+      }
+      else {
+        promise = diagramFactory.insertNewFinancialData($scope.financialData);
+      }
+      promise.then(function(data) {
+        resetForm();
+        refreshDataPoints();
+      }, function(error) {
+
+      });
+    };
 
     function resetForm() {
-      $scope.dream = {};
+      $scope.financialData = angular.copy($scope.defaultFinancialData);
       $scope._id = undefined;
     }
 
-    $scope.datacolumns = [{
-      "id": "top-1",
-      "type": "bar",
-      "name": "Income",
-      "color": "lightgreen"
-    }, {
-      "id": "top-2",
-      "type": "bar",
-      "name": "Outlay",
-      "color": "#FF0099"
-    }];
-    $scope.datax = {
-      "id": "x"
+    $scope.resetForm = function() {
+      resetForm();
     };
 
-    $scope.today = function() {
-      $scope.dream.targetDate = new Date();
-    };
-    $scope.today();
+    function findMinMaxDate(financialData) {
+      var maxes = [];
+      angular.forEach(financialData, function(value, key) {
+        if (value.financialData.reoccurringType == 'One Time') {
+          this.push(value.financialData.targetDateFrom);
+        }
+        else {
+          this.push(value.financialData.targetDateTo);
+        }
+      }, maxes);
+      maxes.sort(function(a, b) {
+        return Date.parse(a) - Date.parse(b);
+      });
+      var maxT = maxes[maxes.length - 1];
 
-    $scope.clear = function() {
-      $scope.dream.targetDate = null;
-    };
+      var mins = [];
+      angular.forEach(financialData, function(value, key) {
+        this.push(value.financialData.targetDateFrom);
+      }, mins);
+      mins.sort(function(a, b) {
+        return Date.parse(a) - Date.parse(b);
+      });
+      var minT = mins[0];
 
-    // Disable weekend selection
-    $scope.disabled = function(date, mode) {
-      return (mode === 'day' && (date.getDay() === 0 || date.getDay() === 6));
-    };
+      var minMax = {
+        "minDate": new Date(minT),
+        "maxDate": new Date(maxT)
+      }
+      return minMax;
+    }
+    
+    function getSummary(financialData, actualMonth, financialDataType) {
+      var result = 0;
+      angular.forEach(financialData, function(data) {
 
-    $scope.toggleMin = function() {
-      $scope.minDate = $scope.minDate ? null : new Date();
-    };
-    $scope.toggleMin();
-
-    $scope.open = function($event) {
-      $event.preventDefault();
-      $event.stopPropagation();
-
-      $scope.opened = true;
-    };
-
-    $scope.dateOptions = {
-      formatYear: 'yy',
-      startingDay: 1
-    };
-
-    $scope.format = 'yyyy-MMMM';
-
-    var tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    var afterTomorrow = new Date();
-    afterTomorrow.setDate(tomorrow.getDate() + 2);
-    $scope.events = [{
-      date: tomorrow,
-      status: 'full'
-    }, {
-      date: afterTomorrow,
-      status: 'partially'
-    }];
-
-    $scope.getDayClass = function(date, mode) {
-      if (mode === 'day') {
-        var dayToCheck = new Date(date).setHours(0, 0, 0, 0);
-
-        for (var i = 0; i < $scope.events.length; i++) {
-          var currentDay = new Date($scope.events[i].date).setHours(0, 0, 0, 0);
-
-          if (dayToCheck === currentDay) {
-            return $scope.events[i].status;
+        if (data.financialData.reoccurringType == 'One time' && data.financialData.type == financialDataType) {
+          var storedTargetDateFrom = new Date(data.financialData.targetDateFrom);
+          if (storedTargetDateFrom.getYear() == actualMonth.getYear() &&
+            storedTargetDateFrom.getMonth() == actualMonth.getMonth()) {
+            result += parseInt(data.financialData.amount);
           }
         }
-      }
+        else if (data.financialData.type == financialDataType) {
+          var storedTargetDateFrom = new Date(data.financialData.targetDateFrom);
+          var storedTargetDateTo = new Date(data.financialData.targetDateTo);
+          if (
+            (
+              (storedTargetDateFrom.getYear() == actualMonth.getYear() && storedTargetDateFrom.getMonth() <= actualMonth.getMonth()) ||
+              (storedTargetDateFrom.getYear() <= actualMonth.getYear())
+            ) &&
+            (
+              (storedTargetDateTo.getYear() == actualMonth.getYear() && storedTargetDateTo.getMonth() >= actualMonth.getMonth()) ||
+              (storedTargetDateTo.getYear() >= actualMonth.getYear())
+            )
+          ) {
+            result += parseInt(data.financialData.amount);
+          }
+        }
+      }, result)
+      return result;
+    }
 
-      return '';
+    function getIncomeSummary(financialData, actualMonth) {
+      return getSummary(financialData, actualMonth, "Income");
+    }
+
+    function getExpenseSummary(financialData, actualMonth) {
+      return getSummary(financialData, actualMonth, "Expense")
+    }
+
+    function getBalanceSummary(financialData, actualMonth) {
+      return 10;
+    }
+
+    function convertFinancialDataToDatapoint(financialData) {
+      var minMaxDates = findMinMaxDate(financialData);
+      var result = [];
+      var actualMonth = minMaxDates.minDate;
+      var balanceSummary = 0;
+      for (actualMonth; actualMonth < minMaxDates.maxDate; actualMonth.setMonth(actualMonth.getMonth() + 1)) {
+        var incomeSummary = getIncomeSummary(financialData, actualMonth);
+        var expenseSummary = getExpenseSummary(financialData, actualMonth);
+        balanceSummary += incomeSummary;
+        balanceSummary -= expenseSummary;
+        result.push({
+          "x": actualMonth,
+          "income": incomeSummary,
+          "expense": expenseSummary,
+          "balance": balanceSummary
+        });
+      }
+      return result;
     };
   });

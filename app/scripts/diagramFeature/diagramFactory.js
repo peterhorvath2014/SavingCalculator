@@ -30,7 +30,7 @@ angular.module('savingcalculatorApp')
                     url: 'https://api.mongolab.com/api/1/databases/savings/collections/financialdata',
                     method: 'POST',
                     data: {
-                        finantialData: dream
+                        financialData: dream
                     },
                     params: {
                         'apiKey': 'rLXW_SYqupDY0XvVv50ge8CVYUgrsMRZ'
@@ -81,7 +81,7 @@ angular.module('savingcalculatorApp')
                     url: 'https://api.mongolab.com/api/1/databases/savings/collections/financialdata/' + id.$oid,
                     method: 'PUT',
                     data: {
-                        finantialData: dream
+                        financialData: dream
                     },
                     params: {
                         'apiKey': 'rLXW_SYqupDY0XvVv50ge8CVYUgrsMRZ'
