@@ -25,12 +25,12 @@ angular.module('savingcalculatorApp')
                         return $q.reject(response.data);
                     });
             },
-            insertNewFinancialData: function(dream) {
+            insertNewFinancialData: function(financialData) {
                 return $http({
                     url: 'https://api.mongolab.com/api/1/databases/savings/collections/financialdata',
                     method: 'POST',
                     data: {
-                        financialData: dream
+                        financialData: financialData
                     },
                     params: {
                         'apiKey': 'rLXW_SYqupDY0XvVv50ge8CVYUgrsMRZ'
@@ -75,13 +75,13 @@ angular.module('savingcalculatorApp')
                         return $q.reject(response.data);
                     });
             },
-            updateFinancialData: function(tester, id) {
-                $log.debug(tester._id);
+            updateFinancialData: function(financialData, id) {
+                $log.debug(financialData._id);
                 return $http({
                     url: 'https://api.mongolab.com/api/1/databases/savings/collections/financialdata/' + id.$oid,
                     method: 'PUT',
                     data: {
-                        financialData: dream
+                        financialData: financialData
                     },
                     params: {
                         'apiKey': 'rLXW_SYqupDY0XvVv50ge8CVYUgrsMRZ'

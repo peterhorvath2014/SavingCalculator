@@ -17,7 +17,9 @@ angular
     'ngSanitize',
     'ngTouch',
     'gridshore.c3js.chart',
-    'ui.bootstrap'
+    'ui.bootstrap',
+    'angular.filter',
+    'angular-loading-bar',
   ])
   .config(function ($routeProvider) {
     $routeProvider
@@ -29,4 +31,7 @@ angular
       .otherwise({
         redirectTo: '/'
       });
-  });
+  })
+  .config(['cfpLoadingBarProvider', function(cfpLoadingBarProvider) {
+    cfpLoadingBarProvider.includeSpinner = false;
+  }]);

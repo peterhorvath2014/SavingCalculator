@@ -35,6 +35,8 @@ module.exports = function(config) {
       'bower_components/c3/c3.js',
       'bower_components/c3-angular/c3js-directive.js',
       'bower_components/angular-bootstrap/ui-bootstrap-tpls.js',
+      'bower_components/angular-filter/dist/angular-filter.js',
+      'bower_components/angular-loading-bar/build/loading-bar.js',
       'bower_components/angular-mocks/angular-mocks.js',
       // endbower
       "app/scripts/**/*.js",

@@ -28,9 +28,6 @@ angular.module('savingcalculatorApp')
         "name": "Balance",
         "color": "#660033"
       }];
-      $scope.datax = {
-        "id": "x"
-      };
     };
 
     function initDatePicker() {
@@ -38,7 +35,6 @@ angular.module('savingcalculatorApp')
         $scope.financialData.targetDateFrom = new Date();
         $scope.financialData.targetDateTo = new Date();
       };
-      $scope.today();
 
       $scope.clear = function() {
         $scope.financialData.targetDateFrom = null;
@@ -66,7 +62,7 @@ angular.module('savingcalculatorApp')
         startingDay: 1
       };
 
-      $scope.format = 'yyyy-MM';
+      $scope.format = 'yyyy-M';
 
       var tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
@@ -121,8 +117,6 @@ angular.module('savingcalculatorApp')
         "cTrue": true
       }];
       $scope.defaultFinancialData = {
-        "targetDateFrom": new Date(),
-        "targetDateTo": new Date(),
         "type": $scope.financialDataTypes[1].name,
         "reoccurringType": $scope.financialDataReoccurringTypes[0].name,
       };
@@ -141,8 +135,7 @@ angular.module('savingcalculatorApp')
     function refreshDataPoints() {
       var promise = diagramFactory.getFinancialData();
       promise.then(function(data) {
-        $log.debug(data);
-        $scope.financialDataFromDb = data;
+        $scope.financialDataFromDb = angular.copy(data);
         $scope.datapoints = convertFinancialDataToDatapoint(data);
       }, function(error) {});
     }
@@ -173,6 +166,36 @@ angular.module('savingcalculatorApp')
       });
     };
 
+    $scope.loadFinancialDataIntoWorkingArea = function(financialDataWrapper) {
+      $scope.financialData = angular.copy(financialDataWrapper.financialData);
+      $scope._id = angular.copy(financialDataWrapper._id);
+    }
+
+    $scope.toggleShow = function(financialDataWrapper) {
+      var promise;
+      if (financialDataWrapper) {
+        if (financialDataWrapper.financialData.show) {
+          financialDataWrapper.financialData.show = false;
+        }
+        else {
+          financialDataWrapper.financialData.show = true;
+        }
+        promise = diagramFactory.updateFinancialData(financialDataWrapper.financialData, financialDataWrapper._id);
+      }
+      promise.then(function(data) {
+        resetForm();
+        refreshDataPoints();
+      }, function(error) {
+
+      });
+    }
+
+    $scope.toggleShowGroup = function(financialDataWrapperGroups) {
+      angular.forEach(financialDataWrapperGroups, function(value, key) {
+        $scope.toggleShow(value);
+      });
+    }
+
     function resetForm() {
       $scope.financialData = angular.copy($scope.defaultFinancialData);
       $scope._id = undefined;
@@ -185,7 +208,7 @@ angular.module('savingcalculatorApp')
     function findMinMaxDate(financialData) {
       var maxes = [];
       angular.forEach(financialData, function(value, key) {
-        if (value.financialData.reoccurringType == 'One Time') {
+        if (value.financialData.reoccurringType == 'One time') {
           this.push(value.financialData.targetDateFrom);
         }
         else {
@@ -196,6 +219,7 @@ angular.module('savingcalculatorApp')
         return Date.parse(a) - Date.parse(b);
       });
       var maxT = maxes[maxes.length - 1];
+
 
       var mins = [];
       angular.forEach(financialData, function(value, key) {
@@ -208,16 +232,24 @@ angular.module('savingcalculatorApp')
 
       var minMax = {
         "minDate": new Date(minT),
-        "maxDate": new Date(maxT)
+        "maxDate": new Date(maxT).setMonth(new Date(maxT).getMonth() + 1)
       }
       return minMax;
     }
-    
+
     function getSummary(financialData, actualMonth, financialDataType) {
+      $log.debug(actualMonth);
       var result = 0;
       angular.forEach(financialData, function(data) {
 
         if (data.financialData.reoccurringType == 'One time' && data.financialData.type == financialDataType) {
+          if (actualMonth.getMonth() == data.financialData.inflationMonth) {
+            $log.debug(data.financialData);
+            $log.debug(data.financialData.amount);
+            data.financialData.amount = data.financialData.amount * (1 + data.financialData.inflation / 100);
+            $log.debug(data.financialData);
+            $log.debug(data.financialData.amount);
+          }
           var storedTargetDateFrom = new Date(data.financialData.targetDateFrom);
           if (storedTargetDateFrom.getYear() == actualMonth.getYear() &&
             storedTargetDateFrom.getMonth() == actualMonth.getMonth()) {
@@ -225,19 +257,32 @@ angular.module('savingcalculatorApp')
           }
         }
         else if (data.financialData.type == financialDataType) {
+          if (actualMonth.getMonth() == data.financialData.inflationMonth) {
+            $log.debug(data.financialData);
+            $log.debug(data.financialData.amount);
+            data.financialData.amount = data.financialData.amount * (1 + data.financialData.inflation / 100);
+            $log.debug(data.financialData);
+            $log.debug(data.financialData.amount);
+          }
           var storedTargetDateFrom = new Date(data.financialData.targetDateFrom);
           var storedTargetDateTo = new Date(data.financialData.targetDateTo);
           if (
             (
               (storedTargetDateFrom.getYear() == actualMonth.getYear() && storedTargetDateFrom.getMonth() <= actualMonth.getMonth()) ||
-              (storedTargetDateFrom.getYear() <= actualMonth.getYear())
+              (storedTargetDateFrom.getYear() < actualMonth.getYear())
             ) &&
             (
               (storedTargetDateTo.getYear() == actualMonth.getYear() && storedTargetDateTo.getMonth() >= actualMonth.getMonth()) ||
-              (storedTargetDateTo.getYear() >= actualMonth.getYear())
+              (storedTargetDateTo.getYear() > actualMonth.getYear())
             )
           ) {
-            result += parseInt(data.financialData.amount);
+
+            if (data.financialData.reoccurringType == 'Monthly') {
+              result += parseInt(data.financialData.amount);
+            }
+            else if ((data.financialData.reoccurringType == 'Annually') && (new Date(data.financialData.targetDateFrom).getMonth() == actualMonth.getMonth())) {
+              result += parseInt(data.financialData.amount);
+            }
           }
         }
       }, result)
@@ -257,21 +302,29 @@ angular.module('savingcalculatorApp')
     }
 
     function convertFinancialDataToDatapoint(financialData) {
-      var minMaxDates = findMinMaxDate(financialData);
+      var actualFinancialData = [];
+      angular.forEach(financialData, function(value, key) {
+        if (value.financialData.show) {
+          this.push(value);
+        }
+      }, actualFinancialData);
+
+      var minMaxDates = findMinMaxDate(actualFinancialData);
       var result = [];
       var actualMonth = minMaxDates.minDate;
       var balanceSummary = 0;
       for (actualMonth; actualMonth < minMaxDates.maxDate; actualMonth.setMonth(actualMonth.getMonth() + 1)) {
-        var incomeSummary = getIncomeSummary(financialData, actualMonth);
-        var expenseSummary = getExpenseSummary(financialData, actualMonth);
+        var incomeSummary = getIncomeSummary(actualFinancialData, actualMonth);
+        var expenseSummary = getExpenseSummary(actualFinancialData, actualMonth);
         balanceSummary += incomeSummary;
         balanceSummary -= expenseSummary;
-        result.push({
-          "x": actualMonth,
+        var actualPush = {
+          "x": new Date(actualMonth),
           "income": incomeSummary,
           "expense": expenseSummary,
           "balance": balanceSummary
-        });
+        };
+        result.push(actualPush);
       }
       return result;
     };
