@@ -15,7 +15,7 @@ angular.module('savingcalculatorApp')
                         if (typeof response.data === 'object') {
                             var result = [];
                             angular.forEach(response.data._embedded.financialData, function (value, key) {
-                                $log.debug(value);
+                                $log.info(value);
                                 var oid = value._links.self.href.split("/");
                                 oid = oid[oid.length - 1];
                                 this.push({
@@ -27,7 +27,7 @@ angular.module('savingcalculatorApp')
                             }, result);
 
 
-                            $log.info(result);
+                            //$log.info(result);
                             //return response.data._embedded.financialData;
                             return result;
                         } else {
@@ -64,10 +64,11 @@ angular.module('savingcalculatorApp')
                         return $q.reject(response.data);
                     });
             },
-            deleteFinancialData: function (id) {
+            deleteFinancialData: function (financialData) {
                 return $http({
                     //url: 'https://api.mongolab.com/api/1/databases/savings/collections/financialdata/' + id.$oid,
-                    url: 'http://peterdesktop.com:8080/financialData/' + id.$oid,
+                    //url: 'http://peterdesktop.com:8080/financialData/' + id.$oid,
+                    url: financialData._links.self.href,
                     method: 'DELETE'
                 }).then(
                     function (response) {
@@ -84,10 +85,11 @@ angular.module('savingcalculatorApp')
                         return $q.reject(response);
                     });
             },
-            updateFinancialData: function (financialData, id) {
+            updateFinancialData: function (financialData) {
                 return $http({
                     //url: 'https://api.mongolab.com/api/1/databases/savings/collections/financialdata/' + id.$oid,
-                    url: 'http://peterdesktop.com:8080/financialData/' + id.$oid,
+                    //url: 'http://peterdesktop.com:8080/financialData/' + id.$oid,
+                    url: financialData._links.self.href,
                     method: 'PUT',
                     data: financialData
                 }).then(

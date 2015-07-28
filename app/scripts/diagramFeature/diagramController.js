@@ -9,7 +9,7 @@
  */
 
 angular.module('savingcalculatorApp')
-    .controller('DiagramCtrl', function ($scope, $log, diagramFactory) {
+    .controller('DiagramCtrl', function ($scope, $log, diagramFactory, $resource) {
         function initDiagram() {
             $scope.datapoints = [];
             $scope.datacolumns = [{
@@ -28,6 +28,9 @@ angular.module('savingcalculatorApp')
                 "name": "Balance",
                 "color": "#660033"
       }];
+            $scope.datax = {
+                "id": "x"
+            };
         };
 
         function initDatePicker() {
@@ -133,16 +136,23 @@ angular.module('savingcalculatorApp')
         init();
 
         function refreshDataPoints() {
-            var promise = diagramFactory.getFinancialData();
+            var FinancialData = $resource('http://peterdesktop.com:8080/financialData');
+            FinancialData.get()
+                .$promise.then(function (response) {
+                    $log.debug(response);
+                    $scope.financialDataFromDb = angular.copy(response._embedded.financialData);
+                    $scope.datapoints = convertFinancialDataToDatapoint(response._embedded.financialData);
+                });
+            /*var promise = diagramFactory.getFinancialData();
             promise.then(function (data) {
                 $scope.financialDataFromDb = angular.copy(data);
                 $scope.datapoints = convertFinancialDataToDatapoint(data);
-            }, function (error) {});
+            }, function (error) {});*/
         }
         refreshDataPoints();
 
-        $scope.removeFinancialDataFromDb = function (id) {
-            var promise = diagramFactory.deleteFinancialData(id);
+        $scope.removeFinancialDataFromDb = function (financialData) {
+            var promise = diagramFactory.deleteFinancialData(financialData);
             promise.then(function (data) {
                 refreshDataPoints();
             }, function (error) {
@@ -152,8 +162,8 @@ angular.module('savingcalculatorApp')
 
         $scope.saveFinancialData = function () {
             var promise;
-            if ($scope._id) {
-                promise = diagramFactory.updateFinancialData($scope.financialData, $scope._id);
+            if ($scope.financialData._links) {
+                promise = diagramFactory.updateFinancialData($scope.financialData);
             } else {
                 promise = diagramFactory.insertNewFinancialData($scope.financialData);
             }
@@ -165,13 +175,14 @@ angular.module('savingcalculatorApp')
             });
         };
 
-        $scope.loadFinancialDataIntoWorkingArea = function (financialDataWrapper) {
-            $scope.financialData = angular.copy(financialDataWrapper.financialData);
-            $scope._id = angular.copy(financialDataWrapper._id);
+        $scope.loadFinancialDataIntoWorkingArea = function (financialData) {
+            $scope.financialData = angular.copy(financialData);
         }
 
-        $scope.loadFinancialDataIntoWorkingAreaWithoutId = function (financialDataWrapper) {
-            $scope.financialData = angular.copy(financialDataWrapper.financialData);
+        $scope.loadFinancialDataIntoWorkingAreaWithoutId = function (financialData) {
+            var duplicatedFinancialData = angular.copy(financialData);
+            delete duplicatedFinancialData._links;
+            $scope.financialData = angular.copy(duplicatedFinancialData);
         }
 
         $scope.toggleShow = function (financialDataWrapper) {
@@ -200,7 +211,6 @@ angular.module('savingcalculatorApp')
 
         function resetForm() {
             $scope.financialData = angular.copy($scope.defaultFinancialData);
-            $scope._id = undefined;
         }
 
         $scope.resetForm = function () {
@@ -239,17 +249,12 @@ angular.module('savingcalculatorApp')
         }
 
         function getSummary(financialData, actualMonth, financialDataType) {
-            $log.debug(actualMonth);
             var result = 0;
             angular.forEach(financialData, function (data) {
 
                 if (data.financialData.reoccurringType == 'One time' && data.financialData.type == financialDataType) {
                     if (actualMonth.getMonth() == data.financialData.inflationMonth) {
-                        $log.debug(data.financialData);
-                        $log.debug(data.financialData.amount);
                         data.financialData.amount = data.financialData.amount * (1 + data.financialData.inflation / 100);
-                        $log.debug(data.financialData);
-                        $log.debug(data.financialData.amount);
                     }
                     var storedTargetDateFrom = new Date(data.financialData.targetDateFrom);
                     if (storedTargetDateFrom.getYear() == actualMonth.getYear() &&
@@ -258,11 +263,7 @@ angular.module('savingcalculatorApp')
                     }
                 } else if (data.financialData.type == financialDataType) {
                     if (actualMonth.getMonth() == data.financialData.inflationMonth) {
-                        $log.debug(data.financialData);
-                        $log.debug(data.financialData.amount);
                         data.financialData.amount = data.financialData.amount * (1 + data.financialData.inflation / 100);
-                        $log.debug(data.financialData);
-                        $log.debug(data.financialData.amount);
                     }
                     var storedTargetDateFrom = new Date(data.financialData.targetDateFrom);
                     var storedTargetDateTo = new Date(data.financialData.targetDateTo);
@@ -303,13 +304,15 @@ angular.module('savingcalculatorApp')
         function convertFinancialDataToDatapoint(financialData) {
             var actualFinancialData = [];
             angular.forEach(financialData, function (value, key) {
-                if (value.financialData.show) {
-                    this.push(value);
+                if (value.show) {
+                    this.push({
+                        "financialData": value
+                    });
                 }
             }, actualFinancialData);
-
             var minMaxDates = findMinMaxDate(actualFinancialData);
             var result = [];
+            /*var x_labels = [];*/
             var actualMonth = minMaxDates.minDate;
             var balanceSummary = 0;
             for (actualMonth; actualMonth < minMaxDates.maxDate; actualMonth.setMonth(actualMonth.getMonth() + 1)) {
@@ -323,8 +326,12 @@ angular.module('savingcalculatorApp')
                     "expense": expenseSummary,
                     "balance": balanceSummary
                 };
+                /*x_labels.push(new Date(actualMonth));*/
                 result.push(actualPush);
             }
+            /*result.push({
+                x_labels
+            });*/
             return result;
         };
     });

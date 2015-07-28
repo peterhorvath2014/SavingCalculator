@@ -9,7 +9,7 @@
  * Main module of the application.
  */
 angular
-  .module('savingcalculatorApp', [
+    .module('savingcalculatorApp', [
     'ngAnimate',
     'ngCookies',
     'ngResource',
@@ -20,18 +20,23 @@ angular
     'ui.bootstrap',
     'angular.filter',
     'angular-loading-bar',
-  ])
-  .config(function ($routeProvider) {
-    $routeProvider
-      .when('/', {
-        templateUrl: 'scripts/diagramFeature/diagramView.html',
-        controller: 'DiagramCtrl',
-        controllerAs: 'diagram'
-      })
-      .otherwise({
-        redirectTo: '/'
-      });
-  })
-  .config(['cfpLoadingBarProvider', function(cfpLoadingBarProvider) {
-    cfpLoadingBarProvider.includeSpinner = false;
-  }]);
+    'ngResource',
+    'hateoas'
+    ])
+    .config(['$routeProvider', function ($routeProvider) {
+        $routeProvider
+            .when('/', {
+                templateUrl: 'scripts/diagramFeature/diagramView.html',
+                controller: 'DiagramCtrl',
+                controllerAs: 'diagram'
+            })
+            .otherwise({
+                redirectTo: '/'
+            });
+    }])
+    .config(['cfpLoadingBarProvider', function (cfpLoadingBarProvider) {
+        cfpLoadingBarProvider.includeSpinner = false;
+    }])
+    .config(['HateoasInterceptorProvider', function (HateoasInterceptorProvider) {
+        HateoasInterceptorProvider.transformAllResponses();
+    }]);
